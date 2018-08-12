@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #bottom_scrollview {
+        position: absolute;
+        padding-left: 20px;
+        padding-right: 20px;
+        bottom: 0px;
+        left: 0px;
+        right: 0px;
+        height: 0px;
+        overflow: scroll;
+        background-color: gray;
+        opacity: 0.5;
+      }
+      #inner_scroll {
+        height: 100%;
+        width: 300%;
+        display: flex;
+        flex-direction: row;
+        position: relative;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+      }
+      var points = []
+      // var points = [
+      //   {
+      //     // the farm
+      //     lat: 43.2464677,
+      //     lng: -74.964255,
+      //     timestamp: 'May 7th 2018, 5:19pm'
+      //   },
+      //   {
+      //     // UGP
+      //     lat: 43.1576493,
+      //     lng: -75.3424238,
+      //     timestamp: 'May 8th 2018, 11:30am'
+      //   },
+      //   {
+      //     // GrowNYC
+      //     lat: 40.7101971,
+      //     lng: -74.003273,
+      //     timestamp: 'May 8th 2018, 2:45pm'
+      //   }
+      // ]
+      // harvest date
+      // pack date
+      // receive date
+      var map;
+      function populateMap() {
+        var lineSymbol = {
+          path: 'M 0,-1 0,1',
+          strokeColor: '#FF0000',
+          strokeOpacity: 1,
+          scale: 4
+        };
+        points.forEach((p, index) => {
+          var uluru = {lat: p.lat, lng: p.lng};
+          var marker = new google.maps.Marker({
+            position: uluru,
+            animation: google.maps.Animation.DROP,
+            map: map
+          });
+          var innerScroll = document.getElementById('inner_scroll')
+          var addedBox = document.createElement('div')
+          addedBox.style.height = '90%';
+          addedBox.style.width = '200px';
+          addedBox.style.marginLeft = '20px';
+          addedBox.style.marginRight = '20px';
+          addedBox.style.marginTop = '10px';
+          addedBox.style.borderWidth = '2px';
+          addedBox.style.borderColor = 'red';
+          addedBox.style.borderStyle = 'solid';
+          innerScroll.appendChild(addedBox)
+          if (index > 0) {
+            p1 = {lat: points[index - 1].lat, lng: points[index - 1].lng}
+            p2 = {lat: p.lat, lng: p.lng}
+            var line = new google.maps.Polyline({
+              path: [p1, p2],
+              strokeOpacity: 0,
+              icons: [{
+                icon: lineSymbol,
+                offset: '0',
+                repeat: '20px'
+              }],
+              map: map
+            });
+          }
+        })
+        var theScrollView = document.getElementById('bottom_scrollview')
+        theScrollView.style.height = '200px'
+      }
+      function loadShipment(id) {
+        fetch("http://knowyourfoodchain.com:3000/api/Shipment/" + id, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json'
+          }
+        }).then(resp => resp.json())
+        .then(result => {
+          if (result && result.checkPoints) {
+            points = result.checkPoints.map(p => {
+              return {
+                lat: p.Latitude,
+                lng: p.Longitude,
+                timestamp: p.TimeStamp
+              }
+            })
+            populateMap()
+          } else {
+            alert('Could not verify shipment!')
+          }
+        }).catch(err => {
+          console.log('error here: ' + err)
+          alert('Could not verify shipment!')
+        })
+      }
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 41.9249304, lng: -74.4809314},
+          zoom: 8
+        });
+        id = getParameterByName('id')
+        loadShipment(id)
+        // setTimeout(() => {
+        //   populateMap()
+        // }, 1000)
+      }
+    </script>
+    <div id="bottom_scrollview">
+      <div id="inner_scroll">
+        <div id="inner_scroll2"></div>
+      </div>
+    </div>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyARhZy9diogae29Qm0uszPrZJECOafQiUc&callback=initMap"
+    async defer></script>
+  </body>
+</html>
